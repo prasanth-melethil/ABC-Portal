@@ -1,0 +1,104 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - '*'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+        
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run Linting
+        run: pnpm lint
+
+      - name: Run Tests
+        run: pnpm test
+
+  cd:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+        
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run Linting
+        run: pnpm lint
+
+      - name: Run Tests
+        run: pnpm test
+
+      # - name: Authenticate to Google Cloud
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     credentials_json: ${{ secrets.GCP_SA_KEY }}
+      #     setup-docker: true
+
+      # - name: Set up Google Cloud SDK
+      #   uses: google-github-actions/setup-gcloud@v2
+
+      # - name: Install kubectl
+      #   run: |
+      #     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      #     chmod +x kubectl
+      #     sudo mv kubectl /usr/local/bin/
+
+      # - name: Set Kubernetes Context
+      #   uses: google-github-actions/get-gke-credentials@v1
+      #   with:
+      #     cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+      #     location: ${{ secrets.GKE_CLUSTER_LOCATION }}
+      #     project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      # - name: Build and Push Docker Image
+      #   run: |
+      #     IMAGE_TAG="${{ github.ref_name }}-${{ github.run_number }}"
+      #     REPO_NAME=$(basename $GITHUB_REPOSITORY)
+      #     IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${REPO_NAME}:${IMAGE_TAG}"
+          
+      #     docker build -t $IMAGE_NAME .
+      #     docker push $IMAGE_NAME
+
+      # - name: Apply Kubernetes Manifests
+      #   run: |
+      #     kubectl apply -f ./kube/
