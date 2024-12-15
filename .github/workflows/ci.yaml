@@ -68,14 +68,34 @@ jobs:
       # - name: Run Tests
       #   run: pnpm test
 
-      # - name: Authenticate to Google Cloud
-      #   uses: google-github-actions/auth@v2
+      # Authenticate with GCP
+      # - name: Authenticate with GCP
+      #   uses: google-github-actions/auth@v1
       #   with:
-      #     credentials_json: ${{ secrets.GCP_SA_KEY }}
-      #     setup-docker: true
+      #     credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-      # - name: Set up Google Cloud SDK
-      #   uses: google-github-actions/setup-gcloud@v2
+      # Configure Docker to use gcloud as a credential helper
+      # - name: Configure Docker for GCR
+      #   run: gcloud auth configure-docker
+
+      # Set the image tag using branch name and build number
+      - name: Set image tag
+        id: image_tag
+        run: |
+          BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9\-]/-/g')
+          IMAGE_TAG="$BRANCH_NAME-${{ github.run_number }}"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "Generated Image Tag: $IMAGE_TAG"
+
+      # Build the Docker image
+      # - name: Build Docker image
+      #   run: |
+      #     docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app:$IMAGE_TAG .
+
+      # Push the Docker image to GCR
+      # - name: Push Docker image to GCR
+      #   run: |
+      #     docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app:$IMAGE_TAG
 
       # - name: Install kubectl
       #   run: |
@@ -89,15 +109,6 @@ jobs:
       #     cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
       #     location: ${{ secrets.GKE_CLUSTER_LOCATION }}
       #     project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-      # - name: Build and Push Docker Image
-      #   run: |
-      #     IMAGE_TAG="${{ github.ref_name }}-${{ github.run_number }}"
-      #     REPO_NAME=$(basename $GITHUB_REPOSITORY)
-      #     IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${REPO_NAME}:${IMAGE_TAG}"
-          
-      #     docker build -t $IMAGE_NAME .
-      #     docker push $IMAGE_NAME
 
       # - name: Apply Kubernetes Manifests
       #   run: |
